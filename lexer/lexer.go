@@ -9,6 +9,8 @@ type Lexer struct {
 	ch           byte
 }
 
+// New function passes a string to be tokenized
+// instantiates the lexer and returns it
 func New(input string) *Lexer {
 	l := &Lexer{input: input}
 	l.readChar()
@@ -25,6 +27,7 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
+// Nexttoken function returns the next token from a lexers input string
 func (l *Lexer) Nexttoken() token.Token {
 	var tok token.Token
 	switch l.ch {
@@ -47,6 +50,13 @@ func (l *Lexer) Nexttoken() token.Token {
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	default: // handles keywords or identifiers, returns illegal token if token cannot be matched
+		if isLetter(l.ch) {
+			tok.Literal = l.readIdentifier()
+			return tok
+		} else {
+			tok = newToken(token.ILLEGAL, l.ch)
+		}
 	}
 	l.readChar()
 	return tok
@@ -54,4 +64,16 @@ func (l *Lexer) Nexttoken() token.Token {
 
 func newToken(tt token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tt, Literal: string(ch)}
+}
+
+func (l *Lexer) readIdentifier() string {
+	pos := l.position
+	for isLetter(l.ch) {
+		l.readChar()
+	}
+	return l.input[pos:l.position]
+}
+
+func isLetter(ch byte) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
 }
