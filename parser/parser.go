@@ -7,11 +7,6 @@ import (
 	"monkey/token"
 )
 
-type (
-	prefixParseFn func() ast.Expression
-	infixParseFn  func(ast.Expression) ast.Expression
-)
-
 const (
 	_ int = iota
 	LOWEST
@@ -21,6 +16,36 @@ const (
 	PRODUCT
 	PREFIX
 	CALL
+)
+
+var precedences = map[token.TokenType]int{
+	token.EQ:       EQUALS,
+	token.NOT_EQ:   EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.MINUS:    SUM,
+	token.PLUS:     SUM,
+	token.ASTERISK: PRODUCT,
+	token.SLASH:    PRODUCT,
+}
+
+func (p *Parser) peekPrecedence() int {
+	if p, ok := precedences[p.peekToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+func (p *Parser) curPrecedence() int {
+	if p, ok := precedences[p.curToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression
 )
 
 type Parser struct {
@@ -43,10 +68,9 @@ func New(l *lexer.Lexer) *Parser {
 	p.nextToken()
 
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
-	p.registerPrefix(token.IDENT, p.parseIdentifier)
-	p.registerPrefix(token.INT, p.parseIntegerLiteral)
-	p.registerPrefix(token.BANG, p.parsePrefixExpression)
-	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.infixParseFns = make(map[token.TokenType]infixParseFn)
+	p.registerPrefixParseFns()
+	p.registerInfixParseFns()
 
 	return p
 }
@@ -94,12 +118,4 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	}
 	p.peekError(t)
 	return false
-}
-
-func (p *Parser) registerPrefix(tt token.TokenType, fn prefixParseFn) {
-	p.prefixParseFns[tt] = fn
-}
-
-func (p *Parser) registerInfix(tt token.TokenType, fn infixParseFn) {
-	p.infixParseFns[tt] = fn
 }

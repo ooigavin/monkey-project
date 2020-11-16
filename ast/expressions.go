@@ -38,3 +38,19 @@ func (pe *PrefixExpression) String() string {
 	out.WriteString(fmt.Sprintf("(%s%s)", pe.Operator, pe.Right.String()))
 	return out.String()
 }
+
+type InfixExpression struct {
+	Token    token.Token
+	Operator string
+	Right    Expression
+	Left     Expression
+}
+
+func (ie *InfixExpression) expressionNode()      {}
+func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *InfixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(fmt.Sprintf("(%s %s %s)", ie.Left.String(), ie.Operator, ie.Right.String()))
+	return out.String()
+}

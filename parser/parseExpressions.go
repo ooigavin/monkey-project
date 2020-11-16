@@ -14,12 +14,43 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExp := prefix()
+
+	// if the next token is not a ; AND the next expression does not hold greater precedence
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+		p.nextToken()
+		leftExp = infix(leftExp)
+	}
+
 	return leftExp
 }
 
 func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix parse function found for %s", t)
 	p.errors = append(p.errors, msg)
+}
+
+// REGISTER PARSE FUNCTIONS
+
+func (p *Parser) registerPrefixParseFns() {
+	p.prefixParseFns[token.IDENT] = p.parseIdentifier
+	p.prefixParseFns[token.INT] = p.parseIntegerLiteral
+	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
+	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
+}
+
+func (p *Parser) registerInfixParseFns() {
+	p.infixParseFns[token.EQ] = p.parseInfixExpression
+	p.infixParseFns[token.NOT_EQ] = p.parseInfixExpression
+	p.infixParseFns[token.LT] = p.parseInfixExpression
+	p.infixParseFns[token.GT] = p.parseInfixExpression
+	p.infixParseFns[token.MINUS] = p.parseInfixExpression
+	p.infixParseFns[token.PLUS] = p.parseInfixExpression
+	p.infixParseFns[token.ASTERISK] = p.parseInfixExpression
+	p.infixParseFns[token.SLASH] = p.parseInfixExpression
 }
 
 // PARSE FUNCTIONS
@@ -50,6 +81,20 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	p.nextToken()
 
 	exp.Right = p.parseExpression(PREFIX)
+
+	return exp
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	exp := &ast.InfixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+
+	precedence := p.curPrecedence()
+	p.nextToken()
+	exp.Right = p.parseExpression(precedence)
 
 	return exp
 }
