@@ -24,6 +24,8 @@ const (
 	SLASH    = "/"
 	LT       = "<"
 	GT       = ">"
+	EQ       = "=="
+	NOT_EQ   = "!="
 
 	// delimiters
 	COMMA     = ","
@@ -57,7 +59,7 @@ var keywords = map[string]TokenType{
 func LookupIdent(id string) TokenType {
 	if tok, ok := keywords[id]; ok {
 		return tok
-	} else {
-		return IDENT
 	}
+
+	return IDENT
 }
