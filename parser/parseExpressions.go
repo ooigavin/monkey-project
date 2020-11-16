@@ -39,6 +39,10 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
+func (p *Parser) parseBoolean() ast.Expression {
+	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+}
+
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
@@ -84,6 +88,8 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 func (p *Parser) registerPrefixParseFns() {
 	p.prefixParseFns[token.IDENT] = p.parseIdentifier
 	p.prefixParseFns[token.INT] = p.parseIntegerLiteral
+	p.prefixParseFns[token.TRUE] = p.parseBoolean
+	p.prefixParseFns[token.FALSE] = p.parseBoolean
 	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
 }
