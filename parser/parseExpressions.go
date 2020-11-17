@@ -83,6 +83,15 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	return exp
 }
 
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	p.nextToken()
+	exp := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	return exp
+}
+
 // REGISTER PARSE FUNCTIONS
 
 func (p *Parser) registerPrefixParseFns() {
@@ -92,6 +101,7 @@ func (p *Parser) registerPrefixParseFns() {
 	p.prefixParseFns[token.FALSE] = p.parseBoolean
 	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
+	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
 }
 
 func (p *Parser) registerInfixParseFns() {
