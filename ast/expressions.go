@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"monkey/token"
+	"strings"
 )
 
 type Identifier struct {
@@ -80,5 +81,24 @@ func (ie *IfExpression) String() string {
 	if ie.Alternative != nil {
 		out.WriteString(fmt.Sprintf("else %s", ie.Alternative.String()))
 	}
+	return out.String()
+}
+
+type FuncLiteral struct {
+	Token      token.Token // fn token
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (fl *FuncLiteral) expressionNode()      {}
+func (fl *FuncLiteral) TokenLiteral() string { return fl.Token.Literal }
+func (fl *FuncLiteral) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range fl.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString(fmt.Sprintf("%s(%s) %s", fl.Token.Literal, strings.Join(params, ", "), fl.Body.String()))
 	return out.String()
 }

@@ -92,6 +92,43 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	return exp
 }
 
+func (p *Parser) parseFuncLiteral() ast.Expression {
+	fl := &ast.FuncLiteral{Token: p.curToken}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	fl.Parameters = p.parseFuncParameters()
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	fl.Body = p.parseBlockStatement()
+	return fl
+}
+
+func (p *Parser) parseFuncParameters() []*ast.Identifier {
+	params := []*ast.Identifier{}
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return params
+	}
+	p.nextToken()
+	id := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	params = append(params, id)
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		id := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		params = append(params, id)
+	}
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return params
+}
+
 func (p *Parser) parseIfExpression() ast.Expression {
 	exp := &ast.IfExpression{Token: p.curToken}
 
@@ -136,6 +173,7 @@ func (p *Parser) registerPrefixParseFns() {
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
 	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
 	p.prefixParseFns[token.IF] = p.parseIfExpression
+	p.prefixParseFns[token.FUNCTION] = p.parseFuncLiteral
 }
 
 func (p *Parser) registerInfixParseFns() {
