@@ -46,12 +46,12 @@ type InfixExpression struct {
 	Left     Expression
 }
 
-func (ie *InfixExpression) expressionNode()      {}
-func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
-func (ie *InfixExpression) String() string {
+func (oe *InfixExpression) expressionNode()      {}
+func (oe *InfixExpression) TokenLiteral() string { return oe.Token.Literal }
+func (oe *InfixExpression) String() string {
 	var out bytes.Buffer
 
-	out.WriteString(fmt.Sprintf("(%s %s %s)", ie.Left.String(), ie.Operator, ie.Right.String()))
+	out.WriteString(fmt.Sprintf("(%s %s %s)", oe.Left.String(), oe.Operator, oe.Right.String()))
 	return out.String()
 }
 
@@ -63,3 +63,22 @@ type Boolean struct {
 func (b *Boolean) expressionNode()      {}
 func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
 func (b *Boolean) String() string       { return b.Token.Literal }
+
+type IfExpression struct {
+	Token       token.Token
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (ie *IfExpression) expressionNode()      {}
+func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *IfExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString(fmt.Sprintf("if%s %s", ie.Condition.String(), ie.Consequence.String()))
+
+	if ie.Alternative != nil {
+		out.WriteString(fmt.Sprintf("else %s", ie.Alternative.String()))
+	}
+	return out.String()
+}

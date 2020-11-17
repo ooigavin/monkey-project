@@ -92,6 +92,39 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	return exp
 }
 
+func (p *Parser) parseIfExpression() ast.Expression {
+	exp := &ast.IfExpression{Token: p.curToken}
+
+	// check for "(" after the if keyword
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+	p.nextToken()
+	exp.Condition = p.parseExpression(LOWEST)
+	// check for ")" at the end of the condition
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	exp.Consequence = p.parseBlockStatement()
+
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
+
+		exp.Alternative = p.parseBlockStatement()
+	}
+
+	return exp
+
+}
+
 // REGISTER PARSE FUNCTIONS
 
 func (p *Parser) registerPrefixParseFns() {
@@ -102,6 +135,7 @@ func (p *Parser) registerPrefixParseFns() {
 	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
 	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
 	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
+	p.prefixParseFns[token.IF] = p.parseIfExpression
 }
 
 func (p *Parser) registerInfixParseFns() {

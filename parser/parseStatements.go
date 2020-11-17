@@ -55,3 +55,19 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	}
 	return stmt
 }
+
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	b := &ast.BlockStatement{Token: p.curToken}
+	b.Statements = []ast.Statement{}
+	p.nextToken()
+
+	// similar to parse program but also checks for closing brace
+	for !p.curTokenIs(token.EOF) && !p.curTokenIs(token.RBRACE) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			b.Statements = append(b.Statements, stmt)
+		}
+		p.nextToken()
+	}
+	return b
+}
