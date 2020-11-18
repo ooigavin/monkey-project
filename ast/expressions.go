@@ -102,3 +102,22 @@ func (fl *FuncLiteral) String() string {
 	out.WriteString(fmt.Sprintf("%s(%s) %s", fl.Token.Literal, strings.Join(params, ", "), fl.Body.String()))
 	return out.String()
 }
+
+type CallExpression struct {
+	Token     token.Token // "(" is the infix operator
+	Function  Expression  // identifier or func literal
+	Arguments []Expression
+}
+
+func (ce *CallExpression) expressionNode()      {}
+func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
+func (ce *CallExpression) String() string {
+	var out bytes.Buffer
+
+	args := []string{}
+	for _, p := range ce.Arguments {
+		args = append(args, p.String())
+	}
+	out.WriteString(fmt.Sprintf("%s(%s)", ce.Function.String(), strings.Join(args, ", ")))
+	return out.String()
+}

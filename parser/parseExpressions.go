@@ -33,6 +33,32 @@ func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	p.errors = append(p.errors, msg)
 }
 
+// REGISTER PARSE FUNCTIONS
+
+func (p *Parser) registerPrefixParseFns() {
+	p.prefixParseFns[token.IDENT] = p.parseIdentifier
+	p.prefixParseFns[token.INT] = p.parseIntegerLiteral
+	p.prefixParseFns[token.TRUE] = p.parseBoolean
+	p.prefixParseFns[token.FALSE] = p.parseBoolean
+	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
+	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
+	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
+	p.prefixParseFns[token.IF] = p.parseIfExpression
+	p.prefixParseFns[token.FUNCTION] = p.parseFuncLiteral
+}
+
+func (p *Parser) registerInfixParseFns() {
+	p.infixParseFns[token.EQ] = p.parseInfixExpression
+	p.infixParseFns[token.NOT_EQ] = p.parseInfixExpression
+	p.infixParseFns[token.LT] = p.parseInfixExpression
+	p.infixParseFns[token.GT] = p.parseInfixExpression
+	p.infixParseFns[token.MINUS] = p.parseInfixExpression
+	p.infixParseFns[token.PLUS] = p.parseInfixExpression
+	p.infixParseFns[token.ASTERISK] = p.parseInfixExpression
+	p.infixParseFns[token.SLASH] = p.parseInfixExpression
+	p.infixParseFns[token.LPAREN] = p.parseCallExpression
+}
+
 // PARSE FUNCTIONS
 
 func (p *Parser) parseIdentifier() ast.Expression {
@@ -81,6 +107,31 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	exp.Right = p.parseExpression(precedence)
 
 	return exp
+}
+
+func (p *Parser) parseCallExpression(funcL ast.Expression) ast.Expression {
+	ce := &ast.CallExpression{Token: p.curToken, Function: funcL}
+	ce.Arguments = p.parseCallArguments()
+	return ce
+}
+
+func (p *Parser) parseCallArguments() []ast.Expression {
+	args := []ast.Expression{}
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return args
+	}
+	p.nextToken()
+	args = append(args, p.parseExpression(LOWEST))
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		args = append(args, p.parseExpression(LOWEST))
+	}
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	return args
 }
 
 func (p *Parser) parseGroupedExpression() ast.Expression {
@@ -160,29 +211,4 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 	return exp
 
-}
-
-// REGISTER PARSE FUNCTIONS
-
-func (p *Parser) registerPrefixParseFns() {
-	p.prefixParseFns[token.IDENT] = p.parseIdentifier
-	p.prefixParseFns[token.INT] = p.parseIntegerLiteral
-	p.prefixParseFns[token.TRUE] = p.parseBoolean
-	p.prefixParseFns[token.FALSE] = p.parseBoolean
-	p.prefixParseFns[token.BANG] = p.parsePrefixExpression
-	p.prefixParseFns[token.MINUS] = p.parsePrefixExpression
-	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
-	p.prefixParseFns[token.IF] = p.parseIfExpression
-	p.prefixParseFns[token.FUNCTION] = p.parseFuncLiteral
-}
-
-func (p *Parser) registerInfixParseFns() {
-	p.infixParseFns[token.EQ] = p.parseInfixExpression
-	p.infixParseFns[token.NOT_EQ] = p.parseInfixExpression
-	p.infixParseFns[token.LT] = p.parseInfixExpression
-	p.infixParseFns[token.GT] = p.parseInfixExpression
-	p.infixParseFns[token.MINUS] = p.parseInfixExpression
-	p.infixParseFns[token.PLUS] = p.parseInfixExpression
-	p.infixParseFns[token.ASTERISK] = p.parseInfixExpression
-	p.infixParseFns[token.SLASH] = p.parseInfixExpression
 }
