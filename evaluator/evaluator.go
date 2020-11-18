@@ -5,14 +5,21 @@ import (
 	"monkey/object"
 )
 
+var (
+	TRUE  = &object.Boolean{Value: true}
+	FALSE = &object.Boolean{Value: false}
+)
+
 func Eval(node ast.Node) object.Object {
-	switch nodeType := node.(type) {
+	switch node := node.(type) {
 	case *ast.Program:
-		return evalStatements(nodeType.Statements)
+		return evalStatements(node.Statements)
 	case *ast.ExpressionStatement:
-		return Eval(nodeType.Expression)
+		return Eval(node.Expression)
 	case *ast.IntegerLiteral:
-		return &object.Integer{Value: nodeType.Value}
+		return &object.Integer{Value: node.Value}
+	case *ast.Boolean:
+		return nativeBoolToObject(node.Value)
 	}
 	return nil
 }
@@ -23,4 +30,11 @@ func evalStatements(ss []ast.Statement) object.Object {
 		obj = Eval(stmt)
 	}
 	return obj
+}
+
+func nativeBoolToObject(b bool) object.Object {
+	if b {
+		return TRUE
+	}
+	return FALSE
 }
