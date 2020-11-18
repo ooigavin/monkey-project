@@ -69,3 +69,20 @@ func TestEvalBooleanExpression(t *testing.T) {
 		testBooleanObject(t, eval, tt.expected)
 	}
 }
+
+func TestBangOperator(t *testing.T) {
+	tests := []struct {
+		in       string
+		expected bool
+	}{
+		{"!true", false},
+		{"!!true", true},
+		{"!false", true},
+		{"!5", false},
+	}
+
+	for _, tt := range tests {
+		eval := testEval(tt.in)
+		testBooleanObject(t, eval, tt.expected)
+	}
+}
