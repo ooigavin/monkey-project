@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"monkey/ast"
 	"monkey/object"
 )
@@ -22,6 +23,9 @@ func Eval(node ast.Node) object.Object {
 		return Eval(node.Expression)
 	case *ast.ReturnStatement:
 		obj := Eval(node.ReturnValue)
+		if isError(obj) {
+			return obj
+		}
 		return &object.ReturnValue{Value: obj}
 	// EXPRESSIONS
 	case *ast.IntegerLiteral:
@@ -30,10 +34,19 @@ func Eval(node ast.Node) object.Object {
 		return nativeBoolToObject(node.Value)
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
 		return evalPrefixExpression(node.Operator, right)
 	case *ast.InfixExpression:
 		left := Eval(node.Left)
 		right := Eval(node.Right)
+		if isError(left) {
+			return left
+		}
+		if isError(right) {
+			return right
+		}
 		return evalInfixExpression(node.Operator, left, right)
 	case *ast.IfExpression:
 		return evalIfExpression(node)
@@ -46,4 +59,15 @@ func nativeBoolToObject(b bool) object.Object {
 		return TRUE
 	}
 	return FALSE
+}
+
+func isError(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.ERROR_OBJ
+	}
+	return false
+}
+
+func newError(format string, a ...interface{}) *object.Error {
+	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }

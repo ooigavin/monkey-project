@@ -12,7 +12,7 @@ func evalPrefixExpression(op string, right object.Object) object.Object {
 	case "-":
 		return evalMinusOperatorExpression(right)
 	default:
-		return NULL
+		return newError("unknown operator: %s%s", op, right.Type())
 	}
 }
 
@@ -31,7 +31,7 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 
 func evalMinusOperatorExpression(right object.Object) object.Object {
 	if right.Type() != object.INTEGER_OBJ {
-		return NULL
+		return newError("unknown operator: -%s", right.Type())
 	}
 
 	intObj := right.(*object.Integer)
@@ -48,8 +48,10 @@ func evalInfixExpression(op string, left object.Object, right object.Object) obj
 		return nativeBoolToObject(left == right)
 	case op == "!=":
 		return nativeBoolToObject(left != right)
+	case left.Type() != right.Type():
+		return newError("type mismatch: %s %s %s", left.Type(), op, right.Type())
 	default:
-		return NULL
+		return newError("unknown operator: %s %s %s", left.Type(), op, right.Type())
 	}
 }
 
@@ -79,12 +81,15 @@ func evalIntegerInfixExpression(op string, left object.Object, right object.Obje
 	case "!=":
 		return nativeBoolToObject(leftVal != rightVal)
 	default:
-		return NULL
+		return newError("unknown operator: %s %s %s", left.Type(), op, right.Type())
 	}
 }
 
 func evalIfExpression(ie *ast.IfExpression) object.Object {
 	cond := Eval(ie.Condition)
+	if isError(cond) {
+		return cond
+	}
 	// if cond is truthy eval consequence
 	if isTruthy(cond) {
 		return Eval(ie.Consequence)

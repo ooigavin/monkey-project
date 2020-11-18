@@ -6,21 +6,26 @@ import (
 )
 
 func evalProgram(ss []ast.Statement) object.Object {
-	var obj object.Object
+	var evalObj object.Object
 	for _, stmt := range ss {
-		obj = Eval(stmt)
-		if returnObj, ok := obj.(*object.ReturnValue); ok {
-			return returnObj.Value
+		evalObj = Eval(stmt)
+
+		switch obj := evalObj.(type) {
+		case *object.ReturnValue:
+			return obj.Value
+		case *object.Error:
+			return obj
 		}
 	}
-	return obj
+	return evalObj
 }
 
 func evalBlockStatements(ss []ast.Statement) object.Object {
 	var obj object.Object
 	for _, stmt := range ss {
 		obj = Eval(stmt)
-		if obj != nil && obj.Type() == object.RETURN_VALUE_OBJ {
+		rt := obj.Type()
+		if obj != nil && rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
 			return obj
 		}
 	}
