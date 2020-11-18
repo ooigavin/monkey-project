@@ -25,7 +25,11 @@ func Eval(node ast.Node) object.Object {
 		return nativeBoolToObject(node.Value)
 	case *ast.PrefixExpression:
 		right := Eval(node.Right)
-		return evaluatePrefixExpression(node.Operator, right)
+		return evalPrefixExpression(node.Operator, right)
+	case *ast.InfixExpression:
+		left := Eval(node.Left)
+		right := Eval(node.Right)
+		return evalInfixExpression(node.Operator, left, right)
 	}
 	return nil
 }
@@ -45,7 +49,7 @@ func nativeBoolToObject(b bool) object.Object {
 	return FALSE
 }
 
-func evaluatePrefixExpression(op string, right object.Object) object.Object {
+func evalPrefixExpression(op string, right object.Object) object.Object {
 	switch op {
 	case "!":
 		return evalBangOperatorExpression(right)
@@ -78,4 +82,34 @@ func evalMinusOperatorExpression(right object.Object) object.Object {
 	negInt := &object.Integer{Value: -intObj.Value}
 
 	return negInt
+}
+
+func evalInfixExpression(op string, left object.Object, right object.Object) object.Object {
+	// check that the left & right obj are both integer objs
+	switch {
+	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
+		return evalIntegerInfixExpression(op, left, right)
+	default:
+		return NULL
+	}
+}
+
+func evalIntegerInfixExpression(op string, left object.Object, right object.Object) object.Object {
+	intObj := &object.Integer{}
+	leftVal := left.(*object.Integer).Value
+	rightVal := right.(*object.Integer).Value
+
+	switch op {
+	case "+":
+		intObj.Value = leftVal + rightVal
+	case "-":
+		intObj.Value = leftVal - rightVal
+	case "/":
+		intObj.Value = leftVal / rightVal
+	case "*":
+		intObj.Value = leftVal * rightVal
+	default:
+		return NULL
+	}
+	return intObj
 }
