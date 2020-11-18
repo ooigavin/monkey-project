@@ -95,21 +95,31 @@ func evalInfixExpression(op string, left object.Object, right object.Object) obj
 }
 
 func evalIntegerInfixExpression(op string, left object.Object, right object.Object) object.Object {
-	intObj := &object.Integer{}
 	leftVal := left.(*object.Integer).Value
 	rightVal := right.(*object.Integer).Value
 
 	switch op {
 	case "+":
-		intObj.Value = leftVal + rightVal
+		return &object.Integer{Value: leftVal + rightVal}
 	case "-":
-		intObj.Value = leftVal - rightVal
+		return &object.Integer{Value: leftVal - rightVal}
 	case "/":
-		intObj.Value = leftVal / rightVal
+		return &object.Integer{Value: leftVal / rightVal}
 	case "*":
-		intObj.Value = leftVal * rightVal
+		return &object.Integer{Value: leftVal * rightVal}
+	case ">":
+		return nativeBoolToObject(leftVal > rightVal)
+	case ">=":
+		return nativeBoolToObject(leftVal >= rightVal)
+	case "<":
+		return nativeBoolToObject(leftVal < rightVal)
+	case "<=":
+		return nativeBoolToObject(leftVal <= rightVal)
+	case "==":
+		return nativeBoolToObject(leftVal == rightVal)
+	case "!=":
+		return nativeBoolToObject(leftVal != rightVal)
 	default:
 		return NULL
 	}
-	return intObj
 }
