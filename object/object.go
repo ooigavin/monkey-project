@@ -17,6 +17,25 @@ type Object interface {
 	Inspect() string
 }
 
+type Environment struct {
+	store map[string]Object
+}
+
+func NewEnv() *Environment {
+	s := make(map[string]Object)
+	return &Environment{store: s}
+}
+
+func (e *Environment) Get(k string) (Object, bool) {
+	v, ok := e.store[k]
+	return v, ok
+}
+
+func (e *Environment) Set(k string, v Object) Object {
+	e.store[k] = v
+	return v
+}
+
 type Integer struct {
 	Value int64
 }

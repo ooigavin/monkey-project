@@ -85,16 +85,24 @@ func evalIntegerInfixExpression(op string, left object.Object, right object.Obje
 	}
 }
 
-func evalIfExpression(ie *ast.IfExpression) object.Object {
-	cond := Eval(ie.Condition)
+func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
+	obj, ok := env.Get(id.Value)
+	if !ok {
+		return newError("identifier not found: %s", id.Value)
+	}
+	return obj
+}
+
+func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
+	cond := Eval(ie.Condition, env)
 	if isError(cond) {
 		return cond
 	}
 	// if cond is truthy eval consequence
 	if isTruthy(cond) {
-		return Eval(ie.Consequence)
+		return Eval(ie.Consequence, env)
 	} else if ie.Alternative != nil {
-		return Eval(ie.Alternative)
+		return Eval(ie.Alternative, env)
 	} else {
 		return NULL
 	}

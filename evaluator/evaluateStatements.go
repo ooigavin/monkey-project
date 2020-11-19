@@ -5,10 +5,10 @@ import (
 	"monkey/object"
 )
 
-func evalProgram(ss []ast.Statement) object.Object {
+func evalProgram(ss []ast.Statement, env *object.Environment) object.Object {
 	var evalObj object.Object
 	for _, stmt := range ss {
-		evalObj = Eval(stmt)
+		evalObj = Eval(stmt, env)
 
 		switch obj := evalObj.(type) {
 		case *object.ReturnValue:
@@ -20,10 +20,10 @@ func evalProgram(ss []ast.Statement) object.Object {
 	return evalObj
 }
 
-func evalBlockStatements(ss []ast.Statement) object.Object {
+func evalBlockStatements(ss []ast.Statement, env *object.Environment) object.Object {
 	var obj object.Object
 	for _, stmt := range ss {
-		obj = Eval(stmt)
+		obj = Eval(stmt, env)
 		rt := obj.Type()
 		if obj != nil && rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
 			return obj
