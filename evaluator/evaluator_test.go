@@ -256,3 +256,15 @@ func TestFunctionApplication(t *testing.T) {
 		testIntegerObject(t, testEval(tt.in), tt.expected)
 	}
 }
+
+func TestStringLiteral(t *testing.T) {
+	input := `"hello world"`
+	eval := testEval(input)
+	str, ok := eval.(*object.String)
+	if !ok {
+		t.Fatalf("object is not of type string, is: %T: %s", eval, eval)
+	}
+	if str.Value != "hello world" {
+		t.Errorf("String object does not hold value %q, holds %q", input, str.Value)
+	}
+}

@@ -45,6 +45,7 @@ func (p *Parser) registerPrefixParseFns() {
 	p.prefixParseFns[token.LPAREN] = p.parseGroupedExpression
 	p.prefixParseFns[token.IF] = p.parseIfExpression
 	p.prefixParseFns[token.FUNCTION] = p.parseFuncLiteral
+	p.prefixParseFns[token.STRING] = p.parseStringLiteral
 }
 
 func (p *Parser) registerInfixParseFns() {
@@ -211,4 +212,9 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 	return exp
 
+}
+
+func (p *Parser) parseStringLiteral() ast.Expression {
+	tok := p.curToken
+	return &ast.StringLiteral{Token: tok, Value: tok.Literal}
 }
