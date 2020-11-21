@@ -50,6 +50,8 @@ func evalInfixExpression(op string, left object.Object, right object.Object) obj
 		return nativeBoolToObject(left != right)
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), op, right.Type())
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+		return evalStringInfixExpression(op, left, right)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), op, right.Type())
 	}
@@ -83,6 +85,15 @@ func evalIntegerInfixExpression(op string, left object.Object, right object.Obje
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), op, right.Type())
 	}
+}
+
+func evalStringInfixExpression(op string, left object.Object, right object.Object) object.Object {
+	if op != "+" {
+		return newError("unknown operator: %s %s %s", left.Type(), op, right.Type())
+	}
+	leftVal := left.(*object.String).Value
+	rightVal := right.(*object.String).Value
+	return &object.String{Value: leftVal + rightVal}
 }
 
 func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
