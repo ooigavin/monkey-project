@@ -118,3 +118,15 @@ func isTruthy(condition object.Object) bool {
 		return true
 	}
 }
+
+func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
+	var objs []object.Object
+	for _, exp := range exps {
+		obj := Eval(exp, env)
+		if isError(obj) {
+			return []object.Object{obj}
+		}
+		objs = append(objs, obj)
+	}
+	return objs
+}

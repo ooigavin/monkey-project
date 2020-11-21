@@ -1,6 +1,11 @@
 package object
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+	"monkey/ast"
+	"strings"
+)
 
 type ObjectType string
 
@@ -10,6 +15,7 @@ const (
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	ERROR_OBJ        = "ERROR"
+	FUNC_OBJ         = "FUNC"
 )
 
 type Object interface {
@@ -19,6 +25,13 @@ type Object interface {
 
 type Environment struct {
 	store map[string]Object
+	outer *Environment
+}
+
+func NewEnclosedEnvironment(outer *Environment) *Environment {
+	new := NewEnv()
+	new.outer = outer
+	return new
 }
 
 func NewEnv() *Environment {
@@ -28,6 +41,9 @@ func NewEnv() *Environment {
 
 func (e *Environment) Get(k string) (Object, bool) {
 	v, ok := e.store[k]
+	if !ok && e.outer != nil {
+		return e.outer.Get(k)
+	}
 	return v, ok
 }
 
@@ -68,3 +84,25 @@ type Error struct {
 
 func (e *Error) Type() ObjectType { return ERROR_OBJ }
 func (e *Error) Inspect() string  { return "Error: " + e.Message }
+
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (f *Function) Type() ObjectType { return FUNC_OBJ }
+func (f *Function) Inspect() string {
+	var out bytes.Buffer
+	params := []string{}
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString("fn")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") {\n")
+	out.WriteString(f.Body.String())
+	out.WriteString("\n}")
+	return out.String()
+}
