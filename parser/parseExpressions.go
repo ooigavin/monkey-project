@@ -59,6 +59,7 @@ func (p *Parser) registerInfixParseFns() {
 	p.infixParseFns[token.ASTERISK] = p.parseInfixExpression
 	p.infixParseFns[token.SLASH] = p.parseInfixExpression
 	p.infixParseFns[token.LPAREN] = p.parseCallExpression
+	p.infixParseFns[token.LBRACKET] = p.parseIndexExpression
 }
 
 // PARSE FUNCTIONS
@@ -119,6 +120,17 @@ func (p *Parser) parseCallExpression(funcL ast.Expression) ast.Expression {
 	ce := &ast.CallExpression{Token: p.curToken, Function: funcL}
 	ce.Arguments = p.parseExpressionList(token.RPAREN)
 	return ce
+}
+
+func (p *Parser) parseIndexExpression(funcL ast.Expression) ast.Expression {
+	ie := &ast.IndexExpression{Token: p.curToken, Left: funcL}
+	p.nextToken()
+	ie.Index = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	return ie
 }
 
 func (p *Parser) parseExpressionList(endingToken token.TokenType) []ast.Expression {
