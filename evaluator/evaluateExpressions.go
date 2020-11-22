@@ -144,3 +144,21 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 	}
 	return objs
 }
+
+func evalIndexExpression(left object.Object, index object.Object) object.Object {
+	switch {
+	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
+		return evalArrayIndexExpression(left, index)
+	default:
+		return newError("index operator not supported: %s", left.Type())
+	}
+}
+
+func evalArrayIndexExpression(left object.Object, index object.Object) object.Object {
+	arr := left.(*object.Array)
+	idx := index.(*object.Integer).Value
+	if 0 > idx || idx > int64(len(arr.Elements)-1) {
+		return NULL
+	}
+	return arr.Elements[idx]
+}
