@@ -17,9 +17,9 @@ func TestString(t *testing.T) {
 				Value: &Identifier{
 					Token: token.Token{Type: token.IDENT, Literal: "myVar"},
 					Value: "anotherVar",
-				}
-			}
-		}
+				},
+			},
+		},
 	}
 
 	if program.String() != "let myVar = anotherVar;" {

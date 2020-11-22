@@ -97,11 +97,14 @@ func evalStringInfixExpression(op string, left object.Object, right object.Objec
 }
 
 func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
-	obj, ok := env.Get(id.Value)
-	if !ok {
-		return newError("identifier not found: %s", id.Value)
+	if obj, ok := env.Get(id.Value); ok {
+		return obj
 	}
-	return obj
+	if builtin, ok := builtins[id.Value]; ok {
+		return builtin
+	}
+
+	return newError("identifier not found: %s", id.Value)
 }
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {

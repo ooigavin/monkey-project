@@ -97,13 +97,17 @@ func newError(format string, a ...interface{}) *object.Error {
 }
 
 func applyFunc(obj object.Object, args []object.Object) object.Object {
-	fn, ok := obj.(*object.Function)
-	if !ok {
+	switch fn := obj.(type) {
+	case *object.Function:
+		extendedEnv := extendEnv(fn, args)
+		returnVal := Eval(fn.Body, extendedEnv)
+		return unwrapReturn(returnVal)
+	case *object.Builtin:
+		return fn.Fn(args...)
+	default:
 		return newError("not a function: %s", obj.Type())
 	}
-	extendedEnv := extendEnv(fn, args)
-	returnVal := Eval(fn.Body, extendedEnv)
-	return unwrapReturn(returnVal)
+
 }
 
 func extendEnv(fn *object.Function, args []object.Object) *object.Environment {
