@@ -47,6 +47,7 @@ func (p *Parser) registerPrefixParseFns() {
 	p.prefixParseFns[token.FUNCTION] = p.parseFuncLiteral
 	p.prefixParseFns[token.STRING] = p.parseStringLiteral
 	p.prefixParseFns[token.LBRACKET] = p.parseArrayLiteral
+	p.prefixParseFns[token.LBRACE] = p.parseHashLiteral
 }
 
 func (p *Parser) registerInfixParseFns() {
@@ -234,4 +235,27 @@ func (p *Parser) parseIfExpression() ast.Expression {
 func (p *Parser) parseStringLiteral() ast.Expression {
 	tok := p.curToken
 	return &ast.StringLiteral{Token: tok, Value: tok.Literal}
+}
+
+func (p *Parser) parseHashLiteral() ast.Expression {
+	hash := &ast.HashLiteral{Token: p.curToken}
+	hash.Pairs = make(map[ast.Expression]ast.Expression)
+	for !p.peekTokenIs(token.RBRACE) {
+		p.nextToken()
+		key := p.parseExpression(LOWEST)
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+		p.nextToken()
+		val := p.parseExpression(LOWEST)
+		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
+			return nil
+		}
+		hash.Pairs[key] = val
+	}
+	if !p.expectPeek(token.RBRACE) {
+		return nil
+	}
+	return hash
+
 }
