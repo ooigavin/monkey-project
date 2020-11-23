@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"fmt"
+	"hash/fnv"
 	"monkey/ast"
 	"strings"
 )
@@ -24,6 +25,11 @@ const (
 type Object interface {
 	Type() ObjectType
 	Inspect() string
+}
+
+type HashKey struct {
+	Type  ObjectType
+	Value uint64
 }
 
 type Environment struct {
@@ -63,6 +69,9 @@ type Integer struct {
 
 func (i *Integer) Type() ObjectType { return INTEGER_OBJ }
 func (i *Integer) Inspect() string  { return fmt.Sprintf("%d", i.Value) }
+func (i *Integer) Hash() HashKey {
+	return HashKey{Type: INTEGER_OBJ, Value: uint64(i.Value)}
+}
 
 type String struct {
 	Value string
@@ -70,6 +79,11 @@ type String struct {
 
 func (s *String) Type() ObjectType { return STRING_OBJ }
 func (s *String) Inspect() string  { return s.Value }
+func (s *String) Hash() HashKey {
+	h := fnv.New64a()
+	h.Write([]byte(s.Value))
+	return HashKey{Type: STRING_OBJ, Value: h.Sum64()}
+}
 
 type Boolean struct {
 	Value bool
@@ -77,6 +91,13 @@ type Boolean struct {
 
 func (b *Boolean) Type() ObjectType { return BOOLEAN_OBJ }
 func (b *Boolean) Inspect() string  { return fmt.Sprintf("%v", b.Value) }
+func (b *Boolean) Hash() HashKey {
+	if val := b.Value; val {
+		return HashKey{Type: BOOLEAN_OBJ, Value: 1}
+	} else {
+		return HashKey{Type: BOOLEAN_OBJ, Value: 0}
+	}
+}
 
 type Array struct {
 	Elements []Object
