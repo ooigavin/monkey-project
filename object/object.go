@@ -20,11 +20,16 @@ const (
 	ERROR_OBJ        = "ERROR"
 	FUNC_OBJ         = "FUNC"
 	BUILTIN_OBJ      = "BUILTIN"
+	HASH_OBJ         = "HASH"
 )
 
 type Object interface {
 	Type() ObjectType
 	Inspect() string
+}
+
+type Hashable interface {
+	Hash() HashKey
 }
 
 type HashKey struct {
@@ -111,6 +116,26 @@ func (arr *Array) Inspect() string {
 		elements = append(elements, el.Inspect())
 	}
 	out.WriteString(fmt.Sprintf("[%s]", strings.Join(elements, ", ")))
+	return out.String()
+}
+
+type HashPair struct {
+	Key   Object
+	Value Object
+}
+
+type Hash struct {
+	Pairs map[HashKey]HashPair
+}
+
+func (h *Hash) Type() ObjectType { return HASH_OBJ }
+func (h *Hash) Inspect() string {
+	var out bytes.Buffer
+	pairs := []string{}
+	for _, pair := range h.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.Inspect(), pair.Value.Inspect()))
+	}
+	out.WriteString(fmt.Sprintf("{%s}", strings.Join(pairs, ", ")))
 	return out.String()
 }
 

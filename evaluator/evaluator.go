@@ -79,6 +79,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return elements[0]
 		}
 		return &object.Array{Elements: elements}
+	case *ast.HashLiteral:
+		return evalHashExpression(node, env)
 	case *ast.IndexExpression:
 		left := Eval(node.Left, env)
 		index := Eval(node.Index, env)

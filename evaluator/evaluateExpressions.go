@@ -162,3 +162,26 @@ func evalArrayIndexExpression(left object.Object, index object.Object) object.Ob
 	}
 	return arr.Elements[idx]
 }
+
+func evalHashExpression(node *ast.HashLiteral, env *object.Environment) object.Object {
+	pairs := make(map[object.HashKey]object.HashPair)
+	// check that the key is hashable
+	// check that both key, val can be evaulated to objects
+	for k, v := range node.Pairs {
+		key := Eval(k, env)
+		if isError(key) {
+			return key
+		}
+		hashKey, ok := key.(object.Hashable)
+		if !ok {
+			return newError("type %s is not hashable", key.Type())
+		}
+		val := Eval(v, env)
+		if isError(val) {
+			return val
+		}
+		pairs[hashKey.Hash()] = object.HashPair{Key: key, Value: val}
+	}
+	return &object.Hash{Pairs: pairs}
+
+}
