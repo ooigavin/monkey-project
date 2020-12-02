@@ -16,21 +16,6 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
-func TestIntegerArithmetic(t *testing.T) {
-	tests := []compilerTestCase{
-		{
-			input:             "1 + 2",
-			expectedConstants: []interface{}{1, 2},
-			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpConstant, 1),
-			},
-		},
-	}
-
-	runCompilerTests(t, tests)
-}
-
 func runCompilerTests(t *testing.T, tests []compilerTestCase) {
 	t.Helper()
 	for _, tt := range tests {
@@ -109,4 +94,20 @@ func testIntegerObject(expected int64, actual object.Object) error {
 		return fmt.Errorf("object has wrong value, want: %d, got: %d", expected, result.Value)
 	}
 	return nil
+}
+
+func TestIntegerArithmetic(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input:             "1 + 2",
+			expectedConstants: []interface{}{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpAdd),
+			},
+		},
+	}
+
+	runCompilerTests(t, tests)
 }
