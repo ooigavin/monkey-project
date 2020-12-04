@@ -33,6 +33,10 @@ func (vm *VM) StackTop() object.Object {
 	return vm.stack[vm.sp-1]
 }
 
+func (vm *VM) LastPoppedElem() object.Object {
+	return vm.stack[vm.sp]
+}
+
 func (vm *VM) Run() error {
 	for ip := 0; ip < len(vm.instructions); ip++ {
 		op := code.Opcode(vm.instructions[ip])
@@ -50,6 +54,8 @@ func (vm *VM) Run() error {
 			leftValue := left.(*object.Integer).Value
 
 			vm.push(&object.Integer{Value: leftValue + rightValue})
+		case code.OpPop:
+			vm.pop()
 		}
 	}
 	return nil
