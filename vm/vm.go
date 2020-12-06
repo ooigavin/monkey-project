@@ -11,6 +11,7 @@ const StackSize = 2048
 
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
+var Null = &object.Null{}
 
 type VM struct {
 	constants    []object.Object
@@ -60,6 +61,10 @@ func (vm *VM) Run() error {
 			}
 		case code.OpPop:
 			vm.pop()
+		case code.OpNull:
+			if err := vm.push(Null); err != nil {
+				return err
+			}
 		case code.OpTrue:
 			if err := vm.push(True); err != nil {
 				return err
@@ -76,6 +81,15 @@ func (vm *VM) Run() error {
 			if err := vm.executeBang(); err != nil {
 				return err
 			}
+		case code.OpJumpNotTruthy:
+			pos := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+			if !isTruthy(vm.pop()) {
+				ip = pos - 1
+			}
+		case code.OpJump:
+			pos := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip = pos - 1
 		}
 	}
 	return nil
@@ -181,12 +195,19 @@ func (vm *VM) executeMinus() error {
 func (vm *VM) executeBang() error {
 	obj := vm.pop()
 
+	if isTruthy(obj) {
+		return vm.push(False)
+	}
+	return vm.push(True)
+}
+
+func isTruthy(obj object.Object) bool {
 	switch obj {
 	case True:
-		return vm.push(False)
-	case False:
-		return vm.push(True)
+		return true
+	case False, Null:
+		return false
 	default:
-		return vm.push(False)
+		return true
 	}
 }
