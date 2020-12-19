@@ -12,6 +12,7 @@ type Compiler struct {
 	constants           []object.Object
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
+	symbolTable         *SymbolTable
 }
 
 type Bytecode struct {
@@ -30,7 +31,15 @@ func New() *Compiler {
 		constants:           []object.Object{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+		symbolTable:         NewSymbolTable(),
 	}
+}
+
+func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
+	c := New()
+	c.constants = constants
+	c.symbolTable = s
+	return c
 }
 
 func (c *Compiler) Bytecode() *Bytecode {
@@ -54,6 +63,18 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 		c.emit(code.OpPop)
+	case *ast.LetStatement:
+		if err := c.Compile(node.Value); err != nil {
+			return err
+		}
+		symbol := c.symbolTable.Define(node.Name.Value)
+		c.emit(code.OpSetGlobal, symbol.Index)
+	case *ast.Identifier:
+		if symbol, ok := c.symbolTable.Resolve(node.Value); ok {
+			c.emit(code.OpGetGlobal, symbol.Index)
+		} else {
+			return fmt.Errorf("undefined variable %s", node.Value)
+		}
 	case *ast.BlockStatement:
 		for _, s := range node.Statements {
 			if err := c.Compile(s); err != nil {

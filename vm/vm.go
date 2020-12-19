@@ -7,7 +7,10 @@ import (
 	"monkey/object"
 )
 
-const StackSize = 2048
+const (
+	StackSize  = 2048
+	GlobalSize = 65536
+)
 
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
@@ -17,8 +20,9 @@ type VM struct {
 	constants    []object.Object
 	instructions code.Instructions
 
-	stack []object.Object
-	sp    int // points to the next value in the stack
+	stack   []object.Object
+	sp      int             // points to the next value in the stack
+	globals []object.Object // slice to store all global objects
 }
 
 func New(bc *compiler.Bytecode) *VM {
@@ -27,7 +31,14 @@ func New(bc *compiler.Bytecode) *VM {
 		constants:    bc.Constants,
 		stack:        make([]object.Object, StackSize),
 		sp:           0,
+		globals:      make([]object.Object, GlobalSize),
 	}
+}
+
+func NewWithState(bc *compiler.Bytecode, globals []object.Object) *VM {
+	vm := New(bc)
+	vm.globals = globals
+	return vm
 }
 
 func (vm *VM) StackTop() object.Object {
@@ -84,12 +95,23 @@ func (vm *VM) Run() error {
 		case code.OpJumpNotTruthy:
 			pos := int(code.ReadUint16(vm.instructions[ip+1:]))
 			ip += 2
+			// pos is the position you want to jump to, but you need to decrement by 1 as the loop will increment at the end
 			if !isTruthy(vm.pop()) {
 				ip = pos - 1
 			}
 		case code.OpJump:
 			pos := int(code.ReadUint16(vm.instructions[ip+1:]))
 			ip = pos - 1
+		case code.OpSetGlobal:
+			i := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2
+			vm.globals[i] = vm.pop()
+		case code.OpGetGlobal:
+			i := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2
+			if err := vm.push(vm.globals[i]); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
