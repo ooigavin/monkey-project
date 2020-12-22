@@ -112,6 +112,14 @@ func (vm *VM) Run() error {
 			if err := vm.push(vm.globals[i]); err != nil {
 				return err
 			}
+		case code.OpArray:
+			noElements := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+
+			arr := vm.buildArray(noElements)
+			if err := vm.push(arr); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -244,4 +252,15 @@ func isTruthy(obj object.Object) bool {
 	default:
 		return true
 	}
+}
+
+func (vm *VM) buildArray(noElements int) object.Object {
+	start, end := vm.sp-noElements, vm.sp
+	elements := make([]object.Object, noElements)
+
+	for i := start; i < end; i++ {
+		elements[i-start] = vm.stack[i]
+	}
+	vm.sp = start
+	return &object.Array{Elements: elements}
 }
