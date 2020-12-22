@@ -5,6 +5,7 @@ import (
 	"monkey/ast"
 	"monkey/code"
 	"monkey/object"
+	"sort"
 )
 
 type Compiler struct {
@@ -183,6 +184,22 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 		}
 		c.emit(code.OpArray, len(node.Elements))
+	case *ast.HashLiteral:
+		keys := []ast.Expression{}
+		for key := range node.Pairs {
+			keys = append(keys, key)
+		}
+
+		sort.Slice(keys, func(i, j int) bool { return keys[i].String() < keys[j].String() })
+		for _, key := range keys {
+			if err := c.Compile(key); err != nil {
+				return err
+			}
+			if err := c.Compile(node.Pairs[key]); err != nil {
+				return err
+			}
+		}
+		c.emit(code.OpHash, len(keys)*2)
 	}
 	return nil
 }
