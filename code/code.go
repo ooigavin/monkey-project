@@ -44,7 +44,9 @@ func (ins Instructions) fmtInstruction(def *Definition, operands []int) string {
 type Opcode byte
 
 const (
+	// OpConstant is
 	OpConstant Opcode = iota
+	// OpAdd
 	OpAdd
 	OpSub
 	OpMul
@@ -64,8 +66,16 @@ const (
 	OpGetGlobal
 	OpArray
 	OpHash
+	// OpIndex represents an index expression, it takes no args
+	// pops the 2 objects off the stack
+	// topmost being the index expression
+	// 2nd topmost being the expression to index
+	OpIndex
 )
 
+// Definition defines the structure of an opcode.
+// holds the name as well as a slice of variable args the opcode will take
+// each slice represents the size of the arg in bytes
 type Definition struct {
 	Name          string
 	OperandWidths []int
@@ -92,6 +102,7 @@ var definitions = map[Opcode]*Definition{
 	OpGetGlobal:     {"OpGetGlobal", []int{2}},
 	OpArray:         {"OpArray", []int{2}},
 	OpHash:          {"OpHash", []int{2}},
+	OpIndex:         {"OpNull", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

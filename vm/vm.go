@@ -52,6 +52,7 @@ func (vm *VM) LastPoppedElem() object.Object {
 	return vm.stack[vm.sp]
 }
 
+// Run iterates thru the slice of bytecode instructions and executes them
 func (vm *VM) Run() error {
 	for ip := 0; ip < len(vm.instructions); ip++ {
 		op := code.Opcode(vm.instructions[ip])
@@ -127,8 +128,13 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
-
 			if err := vm.push(hash); err != nil {
+				return err
+			}
+		case code.OpIndex:
+			index := vm.pop()
+			left := vm.pop()
+			if err := vm.executeIndexExpression(left, index); err != nil {
 				return err
 			}
 		}
@@ -291,4 +297,46 @@ func (vm *VM) buildHash(noElements int) (object.Object, error) {
 	}
 	vm.sp = start
 	return &object.Hash{Pairs: pairs}, nil
+}
+
+func (vm *VM) executeIndexExpression(left object.Object, index object.Object) error {
+	switch left.Type() {
+	case object.ARRAY_OBJ:
+		return vm.executeArrayIndex(left, index)
+	case object.HASH_OBJ:
+		return vm.executeHashIndex(left, index)
+	default:
+		return fmt.Errorf("Unsupported index operation %s", left.Type())
+	}
+}
+
+func (vm *VM) executeArrayIndex(left object.Object, index object.Object) error {
+	// convert to array
+	arr := left.(*object.Array)
+	indexObj, ok := index.(*object.Integer)
+	if !ok {
+		return fmt.Errorf("Invalid integer")
+	}
+
+	idx := int(indexObj.Value)
+	if idx >= len(arr.Elements) || idx < 0 {
+		return vm.push(Null)
+	}
+	return vm.push(arr.Elements[idx])
+}
+
+func (vm *VM) executeHashIndex(left object.Object, index object.Object) error {
+	// check if it can be hashed
+	hash := left.(*object.Hash)
+	hashObj, ok := index.(object.Hashable)
+	if !ok {
+		return fmt.Errorf("object %s is not hashable", left.Type())
+	}
+	// check for index error
+	pair, ok := hash.Pairs[hashObj.Hash()]
+	if !ok {
+		return vm.push(Null)
+	}
+	// push obj to stack
+	return vm.push(pair.Value)
 }
