@@ -82,10 +82,20 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 		symbol := c.symbolTable.Define(node.Name.Value)
-		c.emit(code.OpSetGlobal, symbol.Index)
+		if c.symbolTable.Outer != nil {
+			c.emit(code.OpSetLocal, symbol.Index)
+		} else {
+			c.emit(code.OpSetGlobal, symbol.Index)
+		}
 	case *ast.Identifier:
 		if symbol, ok := c.symbolTable.Resolve(node.Value); ok {
-			c.emit(code.OpGetGlobal, symbol.Index)
+			// symbol could belong to outer or even the global scope
+			// cannot just check if the current symboltable is global or local
+			if symbol.Scope != GlobalScope {
+				c.emit(code.OpGetLocal, symbol.Index)
+			} else {
+				c.emit(code.OpGetGlobal, symbol.Index)
+			}
 		} else {
 			return fmt.Errorf("undefined variable %s", node.Value)
 		}
@@ -232,10 +242,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if !c.lastInstructionIs(code.OpReturnValue) {
 			c.emit(code.OpReturn)
 		}
+		numLocals := c.symbolTable.numDef
 		instructions := c.leaveScope()
 
 		// a compiled func is seen as an obj by the compiler & is emited as an OpConstant
-		compiledFn := &object.CompiledFunction{Instructions: instructions}
+		compiledFn := &object.CompiledFunction{Instructions: instructions, NumLocals: numLocals}
 		c.emit(code.OpConstant, c.addConstant(compiledFn))
 	case *ast.CallExpression:
 		if err := c.Compile(node.Function); err != nil {
@@ -309,6 +320,8 @@ func (c *Compiler) replaceInstruction(pos int, newInstruction []byte) {
 }
 
 func (c *Compiler) enterScope() {
+	st := NewEnclosedSymbolTable(c.symbolTable)
+	c.symbolTable = st
 	scope := CompilationScope{
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
@@ -319,6 +332,7 @@ func (c *Compiler) enterScope() {
 }
 
 func (c *Compiler) leaveScope() code.Instructions {
+	c.symbolTable = c.symbolTable.Outer
 	instructions := c.scopes[c.scopeIndex].instructions
 	c.scopes = c.scopes[:len(c.scopes)-1]
 	c.scopeIndex--

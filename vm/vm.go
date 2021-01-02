@@ -18,12 +18,17 @@ var False = &object.Boolean{Value: false}
 var Null = &object.Null{}
 
 type Frame struct {
-	fn *object.CompiledFunction
-	ip int
+	fn          *object.CompiledFunction
+	ip          int
+	basePointer int // refers to the location in the stack before the func frame was pushed
 }
 
-func NewFrame(fn *object.CompiledFunction) *Frame {
-	return &Frame{fn: fn, ip: -1}
+func NewFrame(fn *object.CompiledFunction, basePointer int) *Frame {
+	return &Frame{
+		fn:          fn,
+		ip:          -1,
+		basePointer: basePointer,
+	}
 }
 
 func (f *Frame) Instructions() code.Instructions {
@@ -42,14 +47,14 @@ type VM struct {
 }
 
 func New(bc *compiler.Bytecode) *VM {
-	mainFrame := NewFrame(&object.CompiledFunction{Instructions: bc.Instructions})
+	mainFrame := NewFrame(&object.CompiledFunction{Instructions: bc.Instructions}, 0)
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
 
 	return &VM{
 		constants:   bc.Constants,
 		stack:       make([]object.Object, StackSize),
-		sp:          0,
+		sp:          0, // need to -1 when access objects from stack
 		globals:     make([]object.Object, GlobalSize),
 		frames:      frames,
 		framesIndex: 1,
@@ -74,13 +79,6 @@ func (vm *VM) pushFrame(f *Frame) {
 func (vm *VM) popFrame() *Frame {
 	vm.framesIndex--
 	return vm.frames[vm.framesIndex]
-}
-
-func (vm *VM) StackTop() object.Object {
-	if vm.sp == 0 {
-		return nil
-	}
-	return vm.stack[vm.sp-1]
 }
 
 func (vm *VM) LastPoppedElem() object.Object {
@@ -157,6 +155,20 @@ func (vm *VM) Run() error {
 			if err := vm.push(vm.globals[i]); err != nil {
 				return err
 			}
+		case code.OpSetLocal:
+			// get the index of the symbol
+			i := int(code.ReadUint8(ins[ip+1:]))
+			// increment the instruction pointer by one as the operand size is one byte
+			vm.currentFrame().ip++
+			// pop the value off the stack
+			// save it to the preallocated space on the stack for the current frames local bindings
+			vm.stack[vm.currentFrame().basePointer+i] = vm.pop()
+		case code.OpGetLocal:
+			i := int(code.ReadUint8(ins[ip+1:]))
+			vm.currentFrame().ip++
+			if err := vm.push(vm.stack[vm.currentFrame().basePointer+i]); err != nil {
+				return err
+			}
 		case code.OpArray:
 			noElements := int(code.ReadUint16(ins[ip+1:]))
 			vm.currentFrame().ip += 2
@@ -187,16 +199,19 @@ func (vm *VM) Run() error {
 				return fmt.Errorf("Not a callable function")
 			}
 
-			newFrame := NewFrame(fn)
+			newFrame := NewFrame(fn, vm.sp)
 			vm.pushFrame(newFrame)
+			// allocate space for local bindings in the stack
+			vm.sp += fn.NumLocals
 		case code.OpReturnValue:
 			// get the return value from current frame
 			retVal := vm.pop()
 
 			// pop off the current frame
-			vm.popFrame()
-			// pop off the compiled func from the stack
-			vm.pop()
+			poppedFrame := vm.popFrame()
+			// reset stack pointer to before call frame
+			// -1 to pop off the compiled func as well
+			vm.sp = poppedFrame.basePointer - 1
 
 			// push retval to stack
 			if err := vm.push(retVal); err != nil {
@@ -204,8 +219,8 @@ func (vm *VM) Run() error {
 			}
 
 		case code.OpReturn:
-			vm.popFrame()
-			vm.pop()
+			poppedFrame := vm.popFrame()
+			vm.sp = poppedFrame.basePointer - 1
 
 			if err := vm.push(Null); err != nil {
 				return err
