@@ -233,6 +233,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpIndex)
 	case *ast.FuncLiteral:
 		c.enterScope()
+
+		for _, p := range node.Parameters {
+			c.symbolTable.Define(p.Value)
+		}
+
 		if err := c.Compile(node.Body); err != nil {
 			return err
 		}
@@ -246,13 +251,22 @@ func (c *Compiler) Compile(node ast.Node) error {
 		instructions := c.leaveScope()
 
 		// a compiled func is seen as an obj by the compiler & is emited as an OpConstant
-		compiledFn := &object.CompiledFunction{Instructions: instructions, NumLocals: numLocals}
+		compiledFn := &object.CompiledFunction{
+			Instructions: instructions,
+			NumLocals:    numLocals,
+			NumArgs:      len(node.Parameters),
+		}
 		c.emit(code.OpConstant, c.addConstant(compiledFn))
 	case *ast.CallExpression:
 		if err := c.Compile(node.Function); err != nil {
 			return err
 		}
-		c.emit(code.OpCall)
+		for _, a := range node.Arguments {
+			if err := c.Compile(a); err != nil {
+				return err
+			}
+		}
+		c.emit(code.OpCall, len(node.Arguments))
 	case *ast.ReturnStatement:
 		if err := c.Compile(node.ReturnValue); err != nil {
 			return err

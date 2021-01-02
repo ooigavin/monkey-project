@@ -104,9 +104,10 @@ var definitions = map[Opcode]*Definition{
 	OpArray:         {"OpArray", []int{2}},
 	OpHash:          {"OpHash", []int{2}},
 	OpIndex:         {"OpNull", []int{}},
-	OpCall:          {"OpCall", []int{}},
-	OpReturn:        {"OpReturn", []int{}},
-	OpReturnValue:   {"OpReturnValue", []int{}},
+	// returns the no of args a function call has
+	OpCall:        {"OpCall", []int{1}},
+	OpReturn:      {"OpReturn", []int{}},
+	OpReturnValue: {"OpReturnValue", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

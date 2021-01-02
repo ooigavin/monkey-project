@@ -194,12 +194,18 @@ func (vm *VM) Run() error {
 				return err
 			}
 		case code.OpCall:
-			fn, ok := vm.stack[vm.sp-1].(*object.CompiledFunction)
+			noArgs := int(code.ReadUint8(ins[ip+1:]))
+			vm.currentFrame().ip++
+			fn, ok := vm.stack[vm.sp-1-noArgs].(*object.CompiledFunction)
 			if !ok {
 				return fmt.Errorf("Not a callable function")
 			}
+			if noArgs != fn.NumArgs {
+				return fmt.Errorf("wrong number of arguments: want=%d, got=%d", fn.NumArgs, noArgs)
+			}
 
-			newFrame := NewFrame(fn, vm.sp)
+			// the start of the new frame needs to account for the func args already pushed onto the stack
+			newFrame := NewFrame(fn, vm.sp-noArgs)
 			vm.pushFrame(newFrame)
 			// allocate space for local bindings in the stack
 			vm.sp += fn.NumLocals
