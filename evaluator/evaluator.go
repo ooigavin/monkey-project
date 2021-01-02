@@ -121,7 +121,11 @@ func applyFunc(obj object.Object, args []object.Object) object.Object {
 		returnVal := Eval(fn.Body, extendedEnv)
 		return unwrapReturn(returnVal)
 	case *object.Builtin:
-		return fn.Fn(args...)
+		if res := fn.Fn(args...); res == nil {
+			return NULL
+		} else {
+			return res
+		}
 	default:
 		return newError("not a function: %s", obj.Type())
 	}
