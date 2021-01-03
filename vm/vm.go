@@ -212,6 +212,11 @@ func (vm *VM) Run() error {
 			if err := vm.addClosure(fnIndex, noFree); err != nil {
 				return err
 			}
+		case code.OpCurrentClosure:
+			// push current closure onto stack
+			if err := vm.push(vm.currentFrame().cl); err != nil {
+				return nil
+			}
 		case code.OpGetFree:
 			freeIndex := int(code.ReadUint8(ins[ip+1:]))
 			vm.currentFrame().ip++
