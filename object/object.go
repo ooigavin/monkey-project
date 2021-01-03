@@ -21,6 +21,7 @@ const (
 	ERROR_OBJ         = "ERROR"
 	FUNC_OBJ          = "FUNC"
 	COMPILED_FUNC_OBJ = "COMPILED_FUNC"
+	CLOSURE_OBJ       = "CLOSURE"
 	BUILTIN_OBJ       = "BUILTIN"
 	HASH_OBJ          = "HASH"
 )
@@ -190,6 +191,16 @@ type CompiledFunction struct {
 
 func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNC_OBJ }
 func (cf *CompiledFunction) Inspect() string  { return fmt.Sprintf("CompiledFunction[%p]", cf) }
+
+type Closure struct {
+	Free []Object
+	Fn   *CompiledFunction
+}
+
+func (c *Closure) Type() ObjectType { return CLOSURE_OBJ }
+func (c *Closure) Inspect() string {
+	return fmt.Sprintf("Closure[%p]", c)
+}
 
 type Builtin struct {
 	Fn BuiltinFunction

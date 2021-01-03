@@ -18,21 +18,21 @@ var False = &object.Boolean{Value: false}
 var Null = &object.Null{}
 
 type Frame struct {
-	fn          *object.CompiledFunction
+	cl          *object.Closure
 	ip          int
 	basePointer int // refers to the location in the stack before the func frame was pushed
 }
 
-func NewFrame(fn *object.CompiledFunction, basePointer int) *Frame {
+func NewFrame(cl *object.Closure, basePointer int) *Frame {
 	return &Frame{
-		fn:          fn,
+		cl:          cl,
 		ip:          -1,
 		basePointer: basePointer,
 	}
 }
 
 func (f *Frame) Instructions() code.Instructions {
-	return f.fn.Instructions
+	return f.cl.Fn.Instructions
 }
 
 type VM struct {
@@ -47,7 +47,8 @@ type VM struct {
 }
 
 func New(bc *compiler.Bytecode) *VM {
-	mainFrame := NewFrame(&object.CompiledFunction{Instructions: bc.Instructions}, 0)
+	mainFn := &object.CompiledFunction{Instructions: bc.Instructions}
+	mainFrame := NewFrame(&object.Closure{Fn: mainFn}, 0)
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
 
@@ -201,6 +202,16 @@ func (vm *VM) Run() error {
 			if err := vm.push(builtin.Builtin); err != nil {
 				return err
 			}
+		case code.OpClosure:
+			// read the index to the compiled func
+			fnIndex := int(code.ReadUint16(ins[ip+1:]))
+			// read the no of free vars
+			_ = code.ReadUint8(ins[ip+3:])
+			vm.currentFrame().ip += 3
+
+			if err := vm.addClosure(fnIndex); err != nil {
+				return err
+			}
 		case code.OpCall:
 			noArgs := int(code.ReadUint8(ins[ip+1:]))
 			vm.currentFrame().ip++
@@ -236,8 +247,8 @@ func (vm *VM) Run() error {
 
 func (vm *VM) executeFnCall(noArgs int) error {
 	switch fn := vm.stack[vm.sp-1-noArgs].(type) {
-	case *object.CompiledFunction:
-		return vm.callFn(fn, noArgs)
+	case *object.Closure:
+		return vm.callClosure(fn, noArgs)
 	case *object.Builtin:
 		return vm.callBuiltinFn(fn, noArgs)
 	default:
@@ -245,18 +256,30 @@ func (vm *VM) executeFnCall(noArgs int) error {
 	}
 }
 
-func (vm *VM) callFn(fn *object.CompiledFunction, noArgs int) error {
+func (vm *VM) callClosure(cl *object.Closure, noArgs int) error {
+	fn := cl.Fn
 	if noArgs != fn.NumArgs {
 		return fmt.Errorf("wrong number of arguments: want=%d, got=%d", fn.NumArgs, noArgs)
 	}
 
 	// the start of the new frame needs to account for the func args already pushed onto the stack
-	newFrame := NewFrame(fn, vm.sp-noArgs)
+	newFrame := NewFrame(cl, vm.sp-noArgs)
 	vm.pushFrame(newFrame)
 
 	// allocate space for local bindings in the stack
 	vm.sp += fn.NumLocals
 	return nil
+}
+
+// gets the compiled fn from the constants slice
+// generates the closure & pushes it to the stack
+func (vm *VM) addClosure(fnIndex int) error {
+	constant := vm.constants[fnIndex]
+	if fn, ok := constant.(*object.CompiledFunction); !ok {
+		return fmt.Errorf("not a function: %+v", constant)
+	} else {
+		return vm.push(&object.Closure{Fn: fn})
+	}
 }
 
 func (vm *VM) callBuiltinFn(builtin *object.Builtin, noArgs int) error {
