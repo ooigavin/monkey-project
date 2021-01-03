@@ -193,22 +193,20 @@ func (vm *VM) Run() error {
 			if err := vm.executeIndexExpression(left, index); err != nil {
 				return err
 			}
+		case code.OpGetBuiltin:
+			// get the builtin index, push builtin fn to stack
+			builtinIndex := int(code.ReadUint8(ins[ip+1:]))
+			vm.currentFrame().ip++
+			builtin := object.Builtins[builtinIndex]
+			if err := vm.push(builtin.Builtin); err != nil {
+				return err
+			}
 		case code.OpCall:
 			noArgs := int(code.ReadUint8(ins[ip+1:]))
 			vm.currentFrame().ip++
-			fn, ok := vm.stack[vm.sp-1-noArgs].(*object.CompiledFunction)
-			if !ok {
-				return fmt.Errorf("Not a callable function")
+			if err := vm.executeFnCall(noArgs); err != nil {
+				return err
 			}
-			if noArgs != fn.NumArgs {
-				return fmt.Errorf("wrong number of arguments: want=%d, got=%d", fn.NumArgs, noArgs)
-			}
-
-			// the start of the new frame needs to account for the func args already pushed onto the stack
-			newFrame := NewFrame(fn, vm.sp-noArgs)
-			vm.pushFrame(newFrame)
-			// allocate space for local bindings in the stack
-			vm.sp += fn.NumLocals
 		case code.OpReturnValue:
 			// get the return value from current frame
 			retVal := vm.pop()
@@ -234,6 +232,41 @@ func (vm *VM) Run() error {
 		}
 	}
 	return nil
+}
+
+func (vm *VM) executeFnCall(noArgs int) error {
+	switch fn := vm.stack[vm.sp-1-noArgs].(type) {
+	case *object.CompiledFunction:
+		return vm.callFn(fn, noArgs)
+	case *object.Builtin:
+		return vm.callBuiltinFn(fn, noArgs)
+	default:
+		return fmt.Errorf("Not a callable or builtin function")
+	}
+}
+
+func (vm *VM) callFn(fn *object.CompiledFunction, noArgs int) error {
+	if noArgs != fn.NumArgs {
+		return fmt.Errorf("wrong number of arguments: want=%d, got=%d", fn.NumArgs, noArgs)
+	}
+
+	// the start of the new frame needs to account for the func args already pushed onto the stack
+	newFrame := NewFrame(fn, vm.sp-noArgs)
+	vm.pushFrame(newFrame)
+
+	// allocate space for local bindings in the stack
+	vm.sp += fn.NumLocals
+	return nil
+}
+
+func (vm *VM) callBuiltinFn(builtin *object.Builtin, noArgs int) error {
+	// simply call the builtin fn with its args & push the result onto the stack
+	args := vm.stack[vm.sp-noArgs : vm.sp]
+	if res := builtin.Fn(args...); res != nil {
+		return vm.push(res)
+	} else {
+		return vm.push(Null)
+	}
 }
 
 func (vm *VM) push(obj object.Object) error {

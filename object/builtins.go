@@ -11,6 +11,10 @@ var Builtins = []struct {
 }{
 	{"len", &Builtin{Fn: lenBn}},
 	{"print", &Builtin{Fn: printBn}},
+	{"first", &Builtin{Fn: firstBn}},
+	{"last", &Builtin{Fn: lastBn}},
+	{"rest", &Builtin{Fn: restBn}},
+	{"push", &Builtin{Fn: pushBn}},
 }
 
 // GetBuiltinByName finds a builtin func from its name
@@ -93,11 +97,11 @@ func restBn(args ...Object) Object {
 func pushBn(args ...Object) Object {
 	if arr, errObj := handleArr(2, args...); errObj != nil {
 		return errObj
-	} else if length := len(arr.Elements); length > 0 {
+	} else {
+		length := len(arr.Elements)
 		newArr := make([]Object, length+1, length+1)
 		copy(newArr, arr.Elements)
 		newArr[length] = args[1]
 		return &Array{Elements: newArr}
 	}
-	return nil
 }

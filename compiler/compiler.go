@@ -37,9 +37,14 @@ func New() *Compiler {
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
 	}
+	st := NewSymbolTable()
+	for i, builtin := range object.Builtins {
+		st.DefineBuiltin(i, builtin.Name)
+	}
+
 	return &Compiler{
 		constants:   []object.Object{},
-		symbolTable: NewSymbolTable(),
+		symbolTable: st,
 		scopeIndex:  0,
 		scopes:      []CompilationScope{mainScope},
 	}
@@ -89,13 +94,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 	case *ast.Identifier:
 		if symbol, ok := c.symbolTable.Resolve(node.Value); ok {
-			// symbol could belong to outer or even the global scope
-			// cannot just check if the current symboltable is global or local
-			if symbol.Scope != GlobalScope {
-				c.emit(code.OpGetLocal, symbol.Index)
-			} else {
-				c.emit(code.OpGetGlobal, symbol.Index)
-			}
+			c.loadSymbol(symbol)
 		} else {
 			return fmt.Errorf("undefined variable %s", node.Value)
 		}
@@ -352,4 +351,17 @@ func (c *Compiler) leaveScope() code.Instructions {
 	c.scopeIndex--
 
 	return instructions
+}
+
+func (c *Compiler) loadSymbol(sym Symbol) {
+	// symbol could belong to outer or even the global scope
+	// cannot just check if the current symboltable is global or local
+	switch sym.Scope {
+	case GlobalScope:
+		c.emit(code.OpGetGlobal, sym.Index)
+	case LocalScope:
+		c.emit(code.OpGetLocal, sym.Index)
+	case BuiltinScope:
+		c.emit(code.OpGetBuiltin, sym.Index)
+	}
 }
