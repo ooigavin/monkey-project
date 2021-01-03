@@ -16,6 +16,9 @@ const PROMPT = ">> "
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
 	symbolTable := compiler.NewSymbolTable()
+	for i, builtin := range object.Builtins {
+		symbolTable.DefineBuiltin(i, builtin.Name)
+	}
 	globals := make([]object.Object, vm.GlobalSize)
 	constants := []object.Object{}
 
