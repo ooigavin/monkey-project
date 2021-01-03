@@ -246,8 +246,15 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if !c.lastInstructionIs(code.OpReturnValue) {
 			c.emit(code.OpReturn)
 		}
+
+		// ensure that these values are taken from the nested scope before leaving
 		numLocals := c.symbolTable.numDef
+		freeSyms := c.symbolTable.FreeSymbols
 		instructions := c.leaveScope()
+
+		for _, sym := range freeSyms {
+			c.loadSymbol(sym)
+		}
 
 		// a compiled func is seen as an obj by the compiler & is emited as an OpConstant
 		compiledFn := &object.CompiledFunction{
@@ -255,7 +262,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			NumLocals:    numLocals,
 			NumArgs:      len(node.Parameters),
 		}
-		c.emit(code.OpClosure, c.addConstant(compiledFn), 0)
+		c.emit(code.OpClosure, c.addConstant(compiledFn), len(freeSyms))
 	case *ast.CallExpression:
 		if err := c.Compile(node.Function); err != nil {
 			return err
@@ -363,5 +370,7 @@ func (c *Compiler) loadSymbol(sym Symbol) {
 		c.emit(code.OpGetLocal, sym.Index)
 	case BuiltinScope:
 		c.emit(code.OpGetBuiltin, sym.Index)
+	case FreeScope:
+		c.emit(code.OpGetFree, sym.Index)
 	}
 }

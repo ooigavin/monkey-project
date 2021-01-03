@@ -206,11 +206,19 @@ func (vm *VM) Run() error {
 			// read the index to the compiled func
 			fnIndex := int(code.ReadUint16(ins[ip+1:]))
 			// read the no of free vars
-			_ = code.ReadUint8(ins[ip+3:])
+			noFree := int(code.ReadUint8(ins[ip+3:]))
 			vm.currentFrame().ip += 3
 
-			if err := vm.addClosure(fnIndex); err != nil {
+			if err := vm.addClosure(fnIndex, noFree); err != nil {
 				return err
+			}
+		case code.OpGetFree:
+			freeIndex := int(code.ReadUint8(ins[ip+1:]))
+			vm.currentFrame().ip++
+
+			currClosure := vm.currentFrame().cl
+			if err := vm.push(currClosure.Free[freeIndex]); err != nil {
+				return nil
 			}
 		case code.OpCall:
 			noArgs := int(code.ReadUint8(ins[ip+1:]))
@@ -273,12 +281,19 @@ func (vm *VM) callClosure(cl *object.Closure, noArgs int) error {
 
 // gets the compiled fn from the constants slice
 // generates the closure & pushes it to the stack
-func (vm *VM) addClosure(fnIndex int) error {
+func (vm *VM) addClosure(fnIndex int, noFree int) error {
 	constant := vm.constants[fnIndex]
 	if fn, ok := constant.(*object.CompiledFunction); !ok {
 		return fmt.Errorf("not a function: %+v", constant)
 	} else {
-		return vm.push(&object.Closure{Fn: fn})
+		free := make([]object.Object, noFree)
+		// pop the free variables off the stack
+		for i := 0; i < noFree; i++ {
+			free[i] = vm.stack[vm.sp-noFree+i]
+		}
+		vm.sp -= noFree
+
+		return vm.push(&object.Closure{Fn: fn, Free: free})
 	}
 }
 

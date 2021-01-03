@@ -74,6 +74,7 @@ const (
 	OpReturnValue
 	OpGetBuiltin
 	OpClosure
+	OpGetFree
 )
 
 // Definition defines the structure of an opcode.
@@ -115,7 +116,9 @@ var definitions = map[Opcode]*Definition{
 	OpGetBuiltin:  {"OpGetBuiltin", []int{1}},
 	// Opclosure has 2 ags, first arg is 2 bytes wide index that points to the location of the compiled fn in the constant stack
 	// the 2nd arg is the no of free variables used in this closure
+	// these free variables will hv to be pushed onto the stack before hand
 	OpClosure: {"OpClosure", []int{2, 1}},
+	OpGetFree: {"OpGetFree", []int{1}},
 }
 
 func Lookup(op byte) (*Definition, error) {
