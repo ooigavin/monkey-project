@@ -87,39 +87,57 @@ type Definition struct {
 }
 
 var definitions = map[Opcode]*Definition{
-	OpConstant:      {"OpConstant", []int{2}},
-	OpAdd:           {"OpAdd", []int{}},
-	OpSub:           {"OpSub", []int{}},
-	OpMul:           {"OpMul", []int{}},
-	OpDiv:           {"OpDiv", []int{}},
-	OpPop:           {"OpPop", []int{}},
-	OpTrue:          {"OpTrue", []int{}},
-	OpFalse:         {"OpFalse", []int{}},
-	OpNull:          {"OpNull", []int{}},
-	OpGreaterThan:   {"OpGreaterThan", []int{}},
-	OpEqual:         {"OpEqual", []int{}},
-	OpNotEqual:      {"OpNotEqual", []int{}},
-	OpMinus:         {"OpMinus", []int{}},
-	OpBang:          {"OpBang", []int{}},
+	// pushes a constant from the slice of constants onto the stack
+	// the arg is the index of the constant on the slice
+	OpConstant: {"OpConstant", []int{2}},
+	// infix binary operators takes no args
+	// pop the next 2 values off the stack and perform the operations
+	OpAdd:         {"OpAdd", []int{}},
+	OpSub:         {"OpSub", []int{}},
+	OpMul:         {"OpMul", []int{}},
+	OpDiv:         {"OpDiv", []int{}},
+	OpPop:         {"OpPop", []int{}},
+	OpTrue:        {"OpTrue", []int{}},
+	OpFalse:       {"OpFalse", []int{}},
+	OpNull:        {"OpNull", []int{}},
+	OpGreaterThan: {"OpGreaterThan", []int{}},
+	OpEqual:       {"OpEqual", []int{}},
+	OpNotEqual:    {"OpNotEqual", []int{}},
+	// prefix operators
+	// pops the next value off the stack and performs its operation
+	OpMinus: {"OpMinus", []int{}},
+	OpBang:  {"OpBang", []int{}},
+	// jump operators, used for conditionals to move instruction pointer
 	OpJump:          {"OpJump", []int{2}},
 	OpJumpNotTruthy: {"OpJumpNotTruthy", []int{2}},
-	OpSetGlobal:     {"OpSetGlobal", []int{2}},
-	OpGetGlobal:     {"OpGetGlobal", []int{2}},
-	OpSetLocal:      {"OpSetLocal", []int{1}},
-	OpGetLocal:      {"OpGetLocal", []int{1}},
-	OpArray:         {"OpArray", []int{2}},
-	OpHash:          {"OpHash", []int{2}},
-	OpIndex:         {"OpNull", []int{}},
+	// pop the last item off the stack and assign it to the globals slice at index i (arg)
+	OpSetGlobal: {"OpSetGlobal", []int{2}},
+	// arg is the index of the global variable to fetch
+	// gets the obj at index i and pushes it onto the stack
+	OpGetGlobal: {"OpGetGlobal", []int{2}},
+	OpSetLocal:  {"OpSetLocal", []int{1}},
+	OpGetLocal:  {"OpGetLocal", []int{1}},
+	// arg represents the no of elements in the array
+	// OpArray builds the arr object from the no of elements & pushes it onto the stack
+	OpArray: {"OpArray", []int{2}},
+	// ophash does the same as oparray but doubles its values for the key-val pairings
+	OpHash: {"OpHash", []int{2}},
+	// pushes a null object onto the stack
+	OpIndex: {"OpNull", []int{}},
 	// returns the no of args a function call has
-	OpCall:        {"OpCall", []int{1}},
-	OpReturn:      {"OpReturn", []int{}},
+	OpCall: {"OpCall", []int{1}},
+	// pops off the current frame and pushes null onto the stack
+	OpReturn: {"OpReturn", []int{}},
+	// gets the last value from the current frame then pops off the frame
 	OpReturnValue: {"OpReturnValue", []int{}},
 	OpGetBuiltin:  {"OpGetBuiltin", []int{1}},
-	// Opclosure has 2 ags, first arg is 2 bytes wide index that points to the location of the compiled fn in the constant stack
+	// Opclosure has 2 args, first arg is 2 bytes wide index that points to the location of the compiled fn in the constant stack
 	// the 2nd arg is the no of free variables used in this closure
 	// these free variables will hv to be pushed onto the stack before hand
-	OpClosure:        {"OpClosure", []int{2, 1}},
-	OpGetFree:        {"OpGetFree", []int{1}},
+	OpClosure: {"OpClosure", []int{2, 1}},
+	// gets the free variable from the current closure and pushes it onto the stack
+	OpGetFree: {"OpGetFree", []int{1}},
+	// pushes current closure onto the stack to allow for recursion
 	OpCurrentClosure: {"OpCurrentClosure", []int{}},
 }
 
